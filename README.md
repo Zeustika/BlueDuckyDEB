@@ -1,69 +1,155 @@
-# BlueSpy - PoC to record audio from a Bluetooth device
+# BlueDucky Ver 2.1 (Android) 🦆
 
-![BlueSpy script](resources/BlueSpy.png)
+Thanks to all the people at HackNexus. Make sure you come join us on VC !
+https://discord.gg/HackNexus
 
-This repository contains the implementation of a proof of concept to record and replay audio from a bluetooth device without the legitimate user's awareness.
+##Added Support for laptop or pc with hci0 or hci1
 
-The PoC was demonstrated during the talk **BSAM: Seguridad en Bluetooth** at **RootedCON 2024** in Madrid.
+NOTES: I will not be able to run this on a laptop or other device outside of a raspberry pi for testing. Due to this, any issues you have will need to be resolved amonsgt each other as I do not have the spare funds to buy an adapter. 
 
-It's designed to raise awareness about the insecure use of Bluetooth devices, and the need of a consistent methodology for security evaluations. That's the purpose of **BSAM, the Bluetooth Security Assessment Methodology**, published by Tarlogic and available [here](https://www.tarlogic.com/bsam/).
+1. [saad0x1's GitHub](https://github.com/saad0x1)
+2. [spicydll's GitHub](https://github.com/spicydll)
+3. [lamentomori's GitHub](https://github.com/lamentomori)
 
-This proof of concept exploits the failure to comply with the [**BSAM-PA-05 control**](https://www.tarlogic.com/bsam/controls/bluetooth-pairing-without-interaction/) within the BSAM methodology. Consequently, the device enables the pairing procedure without requiring user interaction and exposes its functionality to any agent within the signal range.
+<p align="center">
+  <img src="./images/duckmenu.png">
+</p>
 
-More information on our [blog](https://www.tarlogic.com/blog/bluespy-spying-on-bluetooth-conversations/).
+🚨 CVE-2023-45866 - BlueDucky Implementation (Using DuckyScript)
 
-## Requirements
+🔓 Unauthenticated Peering Leading to Code Execution (Using HID Keyboard)
 
-The code is written in Python and has been tested with Python 3.11.8, but it mainly uses widely available tools in Linux systems.
+[This is an implementation of the CVE discovered by marcnewlin](https://github.com/marcnewlin/hi_my_name_is_keyboard)
 
-The PoC uses the following tools:
-+ `bluetoothctl`
-+ `btmgmt`
-+ `pactl`
-+ `parecord`
-+ `paplay`
+<p align="center">
+  <img src="./images/BlueDucky.gif">
+</p>
 
-In Arch Linux distributions, `bluetoothctl` and `btmgmt` can be installed with the package `bluez-utils`, while `pactl`, `parecord` and `paplay` are available in the `libpulse` package.
+## Introduction 📢
+BlueDucky is a powerful tool for exploiting a vulnerability in Bluetooth devices. By running this script, you can:
 
-For the PoC to work, it is necessary to have a working installation of the BlueZ Bluetooth stack, available in the `bluez`package for Arch Linux distributions. A working installation of an audio server compatible with PulseAudio, such as PipeWire, is also required to record and play audio.
+1. 📡 Load saved Bluetooth devices that are no longer visible but have Bluetooth still enabled.
+2. 📂 Automatically save any devices you scan.
+3. 💌 Send messages via ducky script format to interact with devices.
 
-## Setup
+I've successfully run this on a Raspberry Pi 4 using the default Bluetooth module. It works against various phones, with an interesting exception for a New Zealand brand, Vodafone.
 
-Ensure that your device is capable of functioning as an audio source, meaning it has a microphone, and that it is discoverable and connectable via Bluetooth.
+## Installation and Usage 🛠️
 
-For instance, to be discoverable and connectable, the earbuds used during the talk must be outside of their charging case. By default, they only activate the microphone when placed in the user's ears, although this setting can be adjusted in the configuration app.
+### Setup Instructions for Debian-based 
 
-Additionally, ensure that the device is not already connected, or alternatively, that it supports multiple connections.
+```bash
+# update apt
+sudo apt-get update
+sudo apt-get -y upgrade
 
-## Execution
+# install dependencies from apt
+sudo apt install -y bluez-tools bluez-hcidump libbluetooth-dev \
+                    git gcc python3-pip python3-setuptools \
+                    python3-pydbus
 
-Firstly, the address of the device must be discovered using a tool such as `bluetoothctl`:
+# install pybluez from source
+git clone https://github.com/pybluez/pybluez.git
+cd pybluez
+sudo python3 setup.py install
 
+# build bdaddr from the bluez source
+cd ~/
+git clone --depth=1 https://github.com/bluez/bluez.git
+gcc -o bdaddr ~/bluez/tools/bdaddr.c ~/bluez/src/oui.c -I ~/bluez -lbluetooth
+sudo cp bdaddr /usr/local/bin/
 ```
-$ bluetoothctl
-[bluetooth]# scan on
+### Setup Instructions for Arch-based 
+
+```bash
+# update pacman & packages
+sudo pacman -Syyu
+
+# install dependencies
+# since arch doesn't separate lib packages: libbluetooth-dev included in bluez package
+sudo pacman -S bluez-tools bluez-utils bluez-deprecated-tools \
+               python-setuptools python-pydbus python-dbus
+               git gcc python-pip \
+
+# install pybluez from source
+git clone https://github.com/pybluez/pybluez.git
+cd pybluez
+sudo python3 setup.py install
+
+# build bdaddr from the bluez source
+cd ~/
+git clone --depth=1 https://github.com/bluez/bluez.git
+gcc -o bdaddr ~/bluez/tools/bdaddr.c ~/bluez/src/oui.c -I ~/bluez -lbluetooth
+sudo cp bdaddr /usr/local/bin/
 ```
 
-Once the address of the device is discovered, the script can handle the rest:
-
+## Running BlueDucky
+```bash
+git clone https://github.com/pentestfunctions/BlueDucky.git
+cd BlueDucky
+sudo hciconfig hci0 up
+python3 BlueDucky.py
 ```
-$ python BlueSpy.py -a <address>
+
+alternatively,
+
+```bash
+pip3 install -r requirements.txt
 ```
 
-Note: The script might prompt for superuser permissions to modify the configuration of your **BlueZ** instance and pair it with the remote device.
+## Operational Steps 🕹️
+1. On running, it prompts for the target MAC address.
+2. Pressing nothing triggers an automatic scan for devices.
+3. Devices previously found are stored in known_devices.txt.
+4. If known_devices.txt exists, it checks this file before scanning.
+5. Executes using payload.txt file.
+6. Successful execution will result in automatic connection and script running.
 
-## Troubleshooting
+## Duckyscript 💻
+🚧 Work in Progress:
+- Suggest me ideas
 
-`BlueSpy.py` is the main script that executes every step of the process. However, if you encounter issues with any of the phases, so it might be helpful to execute them individually:
-+ `pair.py` utilizes the command-line tool `btmgmt` to modify the configuration of your **BlueZ** and initiate a pairing process with the remote device. The exact commands used are in the `pair` function inside `core.py`.
-+ `connect.py` utilizes the command-line tool `bluetoothctl` to initiate a quick scan (necessary for BlueZ) and establish a connection to the device. The exact commands used are in the `connect` function inside `core.py`.
-+ `just_record.py` utilizes the command-line tools `pactl` and `parecord` to search for the device in the system's audio sources (it must function as a microphone) and initiate a recording session. The exact commands used are in the `record` function inside `core.py`.
-+ The `playback` function inside `core.py` executes `paplay` to play back the captured audio.
+## Version 2.1 🐛
+- Updated UI
+- Improved User Experience
+- Bluetooth Debugger; Checks your bluetooth adapters, and installed dependancies before allowing access to the application, this is to prevent devices that are not supported.
+- Please Note: Numerous Changes have been made,please reference the commit history for specific changes.
+  
+## What's Planned for the Next Release?
+- Integrated DuckyScript Console for attacks that want to maintain persistance, after a payload has been ran
+- Suggest What Should be added next! Join https://discord.gg/HackNexus
 
-If you encounter issues with any of the phases, examine the commands in `core.py` and try to execute them in a shell. This will provide more information on what may be failing.
+#### 📝 Example payload.txt:
+```bash
+REM Title of the payload
+STRING ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*()_-=+\|[{]};:'",<.>/?
+GUI D
+```
 
-## References
+```bash
+REM Opens a private browser to hackertyper.net
+DELAY 200
+ESCAPE
+GUI d
+ALT ESCAPE
+GUI b
+DELAY 700
+REM PRIVATE_BROWSER is equal to CTRL + SHIFT + N
+PRIVATE_BROWSER
+DELAY 700
+CTRL l
+DELAY 300
+STRING hackertyper.net
+DELAY 300
+ENTER
+DELAY 300
+```
 
-If you have any questions regarding how the Bluetooth standard operates or how to assess the security of a Bluetooth device, please refer to our BSAM methodology webpage:
-+ [BSAM: Bluetooth Security Assessment Methodology](https://www.tarlogic.com/bsam/)
+## Enjoy experimenting with BlueDucky! 🌟
+
+
+
+
+
+
 
